@@ -37,9 +37,40 @@ io.on("connection",(socket)=>{
     rooms.get(roomId).add(userName)
 
     io.to(roomId).emit("userJoined", Array.from(rooms.get(currentRoom)));
-    console.log("user joined",userName,roomId);
+  });
+  
+  socket.on("codeChange",({roomId,code})=>{
+    socket.to(roomId).emit("codeUpdate",code);
+  });
+
+  socket.on("leaveRoom",()=>{
+    if(currentRoom && currentUser){
+      rooms.get(currentRoom).delete(currentUser)
+      io.to(currentRoom).emit("userJoined", Array.from(rooms.get(currentRoom)));
+
+      socket.leave(currentRoom);
+      currentRoom =null;
+      currentUser =null;
+    }
   })
-})
+
+  socket.on("typing",({roomId,userName})=>{
+    socket.to(roomId).emit("userTyping",userName);
+  });
+
+  socket.on("languageChange",({roomId,language})=>{
+    io.to(roomId).emit("languageUpdate",language);
+  })
+
+  socket.on("disconnect",()=>{
+    if(currentRoom && currentUser){
+      rooms.get(currentRoom).delete(currentUser);
+      io.to(currentRoom).emit("userJoined", Array.from(rooms.get(currentRoom)));
+    }
+    console.log("user disconnected");
+    
+  })
+});
 
 const port = process.env.PORT || 5000;
 
